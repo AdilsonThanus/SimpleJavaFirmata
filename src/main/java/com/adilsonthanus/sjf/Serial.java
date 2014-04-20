@@ -1,15 +1,35 @@
+/* -*- mode: java; c-basic-offset: 2; indent-tabs-mode: nil -*- */
+
+/*
+ PSerial - class for serial port goodness
+ Part of the Processing project - http://processing.org
+
+ Copyright (c) 2004-05 Ben Fry & Casey Reas
+ Reworked by Gottfried Haider as part of GSOC 2013
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General
+ Public License along with this library; if not, write to the
+ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ Boston, MA  02111-1307  USA
+ */
+
 package com.adilsonthanus.sjf;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-
-import jssc.SerialPort;
-import jssc.SerialPortEvent;
-import jssc.SerialPortEventListener;
-import jssc.SerialPortException;
-import jssc.SerialPortList;
+import java.lang.reflect.*;
+import jssc.*;
 
 public class Serial implements SerialPortEventListener {
+	Object parent;
 	public SerialPort port;
 	Method serialAvailableMethod;
 	Method serialEventMethod;
@@ -28,24 +48,27 @@ public class Serial implements SerialPortEventListener {
 	// * state of the RING, RLSD line
 	// * sending breaks
 
-	public Serial() {
-		this("COM1", 9600, 'N', 8, 1);
+	public Serial(Object parent) {
+		this(parent, "COM1", 9600, 'N', 8, 1);
 	}
 
-	public Serial(int baudRate) {
-		this("COM1", baudRate, 'N', 8, 1);
+	public Serial(Object parent, int baudRate) {
+		this(parent, "COM1", baudRate, 'N', 8, 1);
 	}
 
-	public Serial(String portName) {
-		this(portName, 9600, 'N', 8, 1);
+	public Serial(Object parent, String portName) {
+		this(parent, portName, 9600, 'N', 8, 1);
 	}
 
-	public Serial(String portName, int baudRate) {
-		this(portName, baudRate, 'N', 8, 1);
+	public Serial(Object parent, String portName, int baudRate) {
+		this(parent, portName, baudRate, 'N', 8, 1);
 	}
 
-	public Serial(String portName, int baudRate, char parity, int dataBits,
-			float stopBits) {
+	public Serial(Object parent, String portName, int baudRate, char parity,
+			int dataBits, float stopBits) {
+		this.parent = parent;
+		// parent.registerMethod("dispose", this);
+		// parent.registerMethod("pre", this);
 
 		// setup parity
 		if (parity == 'O') {
@@ -82,6 +105,17 @@ public class Serial implements SerialPortEventListener {
 					+ e.getPortName() + ": " + e.getExceptionType());
 		}
 
+		try {
+			serialEventMethod = parent.getClass().getMethod("serialEvent",
+					new Class[] { this.getClass() });
+		} catch (Exception e) {
+		}
+
+		try {
+			serialAvailableMethod = parent.getClass().getMethod(
+					"serialAvailable", new Class[] { this.getClass() });
+		} catch (Exception e) {
+		}
 	}
 
 	public void dispose() {
@@ -92,7 +126,7 @@ public class Serial implements SerialPortEventListener {
 		if (serialAvailableMethod != null && invokeSerialAvailable) {
 			invokeSerialAvailable = false;
 			try {
-				serialAvailableMethod.invoke(new Object[] { this });
+				serialAvailableMethod.invoke(parent, new Object[] { this });
 			} catch (Exception e) {
 				System.err.println("Error, disabling serialAvailable() for "
 						+ port.getPortName());
@@ -139,6 +173,11 @@ public class Serial implements SerialPortEventListener {
 					+ e.getExceptionType());
 		}
 	}
+
+	/*
+	 * public static Map<String, String> getProperties(String portName) { return
+	 * SerialPortList.getPortProperties(portName); }
+	 */
 
 	public int last() {
 		if (inBuffer == readOffset) {
@@ -331,7 +370,21 @@ public class Serial implements SerialPortEventListener {
 								- readOffset)
 								|| (0 == bufferUntilSize && bufferUntilByte == buffer[inBuffer - 1])) {
 							try {
-								serialEventMethod.invoke(new Object[] { this });
+								// serialEvent() is invoked in the context of
+								// the current (serial) thread
+								// which means that serialization and atomic
+								// variables need to be used to
+								// guarantee reliable operation (and better not
+								// draw() etc..)
+								// serialAvailable() does not provide any real
+								// benefits over using
+								// available() and read() inside draw - but this
+								// function has no
+								// thread-safety issues since it's being invoked
+								// during pre in the context
+								// of the Processing applet
+								serialEventMethod.invoke(parent,
+										new Object[] { this });
 							} catch (Exception e) {
 								System.err
 										.println("Error, disabling serialEvent() for "

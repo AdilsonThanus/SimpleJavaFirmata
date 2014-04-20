@@ -1,5 +1,3 @@
-package com.adilsonthanus.sjf;
-
 /**
  * Firmata.java - Firmata library for Java
  * Copyright (C) 2006-13 David A. Mellis
@@ -24,6 +22,8 @@ package com.adilsonthanus.sjf;
  *
  * $Id$
  */
+
+package com.adilsonthanus.sjf; // hope this is okay!
 
 /**
  * Internal class used by the Arduino class to parse the Firmata protocol.
