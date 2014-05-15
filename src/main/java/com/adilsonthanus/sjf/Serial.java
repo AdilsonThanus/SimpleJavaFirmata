@@ -25,8 +25,9 @@
 
 package com.adilsonthanus.sjf;
 
-import java.lang.reflect.*;
 import jssc.*;
+
+import java.lang.reflect.Method;
 
 public class Serial implements SerialPortEventListener {
 	Object parent;
@@ -62,6 +63,7 @@ public class Serial implements SerialPortEventListener {
 
 	public Serial(Object parent, String portName, int baudRate) {
 		this(parent, portName, baudRate, 'N', 8, 1);
+        //System.out.println(parent + "   " + portName + " " + baudRate);
 	}
 
 	public Serial(Object parent, String portName, int baudRate, char parity,

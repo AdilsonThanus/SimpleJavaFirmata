@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.adilsonthanus</groupId>
 	<artifactId>sjf</artifactId>
-	<version>0.2.0</version>
+	<version>0.3.0</version>
 	<name>SimpleJavaFirmata</name>
 	<url>https://github.com/AdilsonThanus/SimpleJavaFirmata</url>
 	<description>Java only version of firmata/processing for StandartFirmata 2.3.</description>
